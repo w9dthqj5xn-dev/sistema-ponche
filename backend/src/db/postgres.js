@@ -3,7 +3,7 @@ const { Pool } = pg;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: process.env.DATABASE_URL?.includes('render.com') ? { rejectUnauthorized: false } : false
 });
 
 // Función para inicializar las tablas
@@ -57,7 +57,7 @@ export const initDatabase = async () => {
         type VARCHAR(20) NOT NULL,
         date VARCHAR(20) NOT NULL,
         time VARCHAR(20) NOT NULL,
-        timestamp BIGINT NOT NULL,
+        timestamp TIMESTAMP NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -79,6 +79,23 @@ export const initDatabase = async () => {
           WHERE table_name = 'employees' AND column_name = 'password'
         ) THEN
           ALTER TABLE employees ADD COLUMN password VARCHAR(255);
+        END IF;
+      END $$;
+    `);
+
+    // Migración: Cambiar tipo de columna timestamp en punches de BIGINT a TIMESTAMP
+    await client.query(`
+      DO $$ 
+      BEGIN 
+        -- Verificar si la columna timestamp es BIGINT
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'punches' 
+          AND column_name = 'timestamp' 
+          AND data_type = 'bigint'
+        ) THEN
+          -- Cambiar el tipo de la columna
+          ALTER TABLE punches ALTER COLUMN timestamp TYPE TIMESTAMP USING to_timestamp(timestamp/1000);
         END IF;
       END $$;
     `);

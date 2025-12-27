@@ -1,15 +1,15 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../db/database.js';
+import * as db from '../db/postgres.js';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Obtener todos los ponches (solo admin)
-router.get('/', authMiddleware, adminOnly, (req, res) => {
+router.get('/', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { date, storeId, employeeId } = req.query;
-    let punches = db.getPunches();
+    let punches = await db.db.getPunches();
 
     if (date) {
       punches = punches.filter(p => p.date === date);
@@ -24,15 +24,15 @@ router.get('/', authMiddleware, adminOnly, (req, res) => {
     }
 
     // Agregar información del empleado y tienda
-    const enrichedPunches = punches.map(punch => {
-      const employee = db.getEmployeeById(punch.employeeId);
-      const store = db.getStoreById(punch.storeId);
+    const enrichedPunches = await Promise.all(punches.map(async punch => {
+      const employee = await db.db.getEmployeeById(punch.employeeId);
+      const store = await db.db.getStoreById(punch.storeId);
       return {
         ...punch,
         employeeName: employee?.name || 'Desconocido',
         storeName: store?.name || 'Desconocido'
       };
-    });
+    }));
 
     res.json(enrichedPunches);
   } catch (error) {
@@ -42,10 +42,10 @@ router.get('/', authMiddleware, adminOnly, (req, res) => {
 });
 
 // Obtener ponches del empleado actual
-router.get('/my-punches', authMiddleware, (req, res) => {
+router.get('/my-punches', authMiddleware, async (req, res) => {
   try {
     const { date } = req.query;
-    let punches = db.getPunchesByEmployee(req.user.id);
+    let punches = await db.db.getPunchesByEmployee(req.user.id);
 
     if (date) {
       punches = punches.filter(p => p.date === date);
@@ -70,32 +70,43 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Tipo de ponche inválido' });
     }
 
-    const employee = db.getEmployeeById(req.user.id);
+    const employee = await db.db.getEmployeeById(req.user.id);
     if (!employee) {
       return res.status(404).json({ error: 'Empleado no encontrado' });
     }
 
-    if (!employee.active) {
+    if (employee.status !== 'active') {
       return res.status(403).json({ error: 'Empleado inactivo' });
     }
 
     const now = new Date();
     const timestamp = now.toISOString();
     
-    // Obtener fecha y hora en la zona horaria de México (America/Mexico_City)
-    const mexicoTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Mexico_City' }));
-    const date = mexicoTime.toISOString().split('T')[0]; // YYYY-MM-DD
-    const time = mexicoTime.toLocaleTimeString('es-MX', { 
+    // Obtener fecha y hora en la zona horaria de República Dominicana (America/Santo_Domingo)
+    const rdTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Santo_Domingo' }));
+    const date = rdTime.toISOString().split('T')[0]; // YYYY-MM-DD
+    const time = rdTime.toLocaleTimeString('es-DO', { 
       hour: '2-digit', 
       minute: '2-digit', 
       second: '2-digit',
-      hour12: false 
+      hour12: true 
     });
 
     // Verificar si ya existe un ponche del mismo tipo hoy (solo para in, out, lunch-out, lunch-in)
+    const allPunches = await db.db.getPunchesByEmployee(req.user.id);
+    const todayPunches = allPunches.filter(p => p.date === date);
+    
+    // Verificar si ya hay un ponche de salida (out) hoy
+    const hasOutPunch = todayPunches.find(p => p.type === 'out');
+    if (hasOutPunch) {
+      return res.status(400).json({ 
+        error: `Ya registraste tu salida hoy a las ${hasOutPunch.time}. No puedes registrar más ponches hasta mañana.` 
+      });
+    }
+    
+    // Verificar si ya existe un ponche del mismo tipo hoy (solo para in, lunch-out, lunch-in)
     const restrictedTypes = ['in', 'out', 'lunch-out', 'lunch-in'];
     if (restrictedTypes.includes(type)) {
-      const todayPunches = db.getPunchesByEmployee(req.user.id).filter(p => p.date === date);
       const existingPunch = todayPunches.find(p => p.type === type);
       
       if (existingPunch) {
@@ -123,10 +134,10 @@ router.post('/', authMiddleware, async (req, res) => {
       createdAt: timestamp
     };
 
-    db.addPunch(punch);
+    await db.db.addPunch(punch);
 
     // Agregar nombre de la tienda para la respuesta
-    const store = db.getStoreById(employee.storeId);
+    const store = await db.db.getStoreById(employee.storeId);
     const response = {
       ...punch,
       storeName: store?.name || 'Desconocido'
@@ -140,13 +151,13 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 // Obtener estadísticas de ponches por tienda (admin)
-router.get('/stats/by-store', authMiddleware, adminOnly, (req, res) => {
+router.get('/stats/by-store', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { date } = req.query;
-    const stores = db.getStores();
+    const stores = await db.db.getStores();
     
-    const stats = stores.map(store => {
-      let punches = db.getPunchesByStore(store.id);
+    const stats = await Promise.all(stores.map(async store => {
+      let punches = await db.db.getPunchesByStore(store.id);
       
       if (date) {
         punches = punches.filter(p => p.date === date);
@@ -165,7 +176,7 @@ router.get('/stats/by-store', authMiddleware, adminOnly, (req, res) => {
         punchesIn,
         punchesOut
       };
-    });
+    }));
 
     res.json(stats);
   } catch (error) {
@@ -175,17 +186,17 @@ router.get('/stats/by-store', authMiddleware, adminOnly, (req, res) => {
 });
 
 // Obtener estadísticas de salidas al baño por empleado (admin)
-router.get('/stats/bathroom', authMiddleware, adminOnly, (req, res) => {
+router.get('/stats/bathroom', authMiddleware, adminOnly, async (req, res) => {
   try {
-    const allPunches = db.getPunches();
+    const allPunches = await db.db.getPunches();
     const bathroomPunches = allPunches.filter(p => p.type === 'bathroom-out');
     
     // Agrupar por empleado y contar
     const employeeStats = {};
-    bathroomPunches.forEach(punch => {
+    for (const punch of bathroomPunches) {
       if (!employeeStats[punch.employeeId]) {
-        const employee = db.getEmployeeById(punch.employeeId);
-        const store = db.getStoreById(punch.storeId);
+        const employee = await db.db.getEmployeeById(punch.employeeId);
+        const store = await db.db.getStoreById(punch.storeId);
         employeeStats[punch.employeeId] = {
           employeeId: punch.employeeId,
           employeeName: punch.employeeName || employee?.name || 'Desconocido',
@@ -194,7 +205,7 @@ router.get('/stats/bathroom', authMiddleware, adminOnly, (req, res) => {
         };
       }
       employeeStats[punch.employeeId].count++;
-    });
+    }
 
     // Convertir a array y ordenar por mayor cantidad
     const sortedStats = Object.values(employeeStats)

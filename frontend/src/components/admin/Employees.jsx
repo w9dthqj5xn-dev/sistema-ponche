@@ -158,8 +158,8 @@ function Employees() {
                     <td>{employee.phone || 'N/A'}</td>
                     <td>{employee.email || 'N/A'}</td>
                     <td>
-                      <span className={`badge ${employee.active ? 'success' : 'danger'}`}>
-                        {employee.active ? '✅ Activo' : '❌ Inactivo'}
+                      <span className={`badge ${employee.status === 'active' ? 'success' : 'danger'}`}>
+                        {employee.status === 'active' ? '✅ Activo' : '❌ Inactivo'}
                       </span>
                     </td>
                     <td className="actions">
