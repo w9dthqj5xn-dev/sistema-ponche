@@ -1,0 +1,4 @@
+/* App styles are handled by individual component CSS files */
+#root {
+  min-height: 100vh;
+}

@@ -1,0 +1,38 @@
+# Build specification for Render
+services:
+  - type: web
+    name: ponche-backend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ponche-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://ponche-frontend.onrender.com
+    healthCheckPath: /api/health
+
+  - type: web
+    name: ponche-frontend
+    env: static
+    region: oregon
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://ponche-backend.onrender.com/api
+
+databases:
+  - name: ponche-db
+    plan: free
+    databaseName: ponche
+    user: ponche_user
