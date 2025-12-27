@@ -1,0 +1,38 @@
+================================================
+VARIABLES DE ENTORNO PARA RENDER - BACKEND
+================================================
+
+Variable 1:
+Key: NODE_ENV
+Value: production
+
+Variable 2:
+Key: PORT
+Value: 10000
+
+Variable 3:
+Key: DATABASE_URL
+Value: postgresql://ponche_user:682xL5k1xwlnOFaGcahR09Wm13ZW7Ifr@dpg-d57imoer433s73eo02v0-a/ponche
+
+Variable 4:
+Key: JWT_SECRET
+Value: sistema_ponche_super_secreto_cambiar_2025_w9dthqj5xn
+
+Variable 5:
+Key: FRONTEND_URL
+Value: https://ponche-frontend.onrender.com
+
+================================================
+
+INSTRUCCIONES SIMPLES:
+
+1. En Render, cuando crees el Web Service del backend
+2. Busca la sección "Environment Variables"
+3. Haz clic en "Add Environment Variable"
+4. Copia el Key de aquí y pégalo
+5. Copia el Value de aquí y pégalo
+6. Repite para las 5 variables
+7. Selecciona plan Free
+8. Clic en "Create Web Service"
+
+================================================
