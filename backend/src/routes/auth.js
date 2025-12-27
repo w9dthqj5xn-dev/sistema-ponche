@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { db } from '../db/database.js';
+import * as db from '../db/postgres.js';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'secreto-super-seguro-cambiar-en-produccion';

@@ -1,6 +1,6 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../db/database.js';
+import * as db from '../db/postgres.js';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
 
 const router = express.Router();
