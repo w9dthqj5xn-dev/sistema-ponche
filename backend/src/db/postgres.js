@@ -70,6 +70,19 @@ export const initDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_punches_date ON punches(date);
     `);
 
+    // Migración: Agregar columna password a employees si no existe
+    await client.query(`
+      DO $$ 
+      BEGIN 
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'employees' AND column_name = 'password'
+        ) THEN
+          ALTER TABLE employees ADD COLUMN password VARCHAR(255);
+        END IF;
+      END $$;
+    `);
+
     // Verificar si ya existe el usuario admin
     const result = await client.query('SELECT * FROM users WHERE username = $1', ['admin']);
     
