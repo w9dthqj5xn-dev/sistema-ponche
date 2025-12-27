@@ -8,7 +8,7 @@ const router = express.Router();
 // Obtener todas las tiendas
 router.get('/', authMiddleware, (req, res) => {
   try {
-    const stores = db.db.getStores();
+    const stores = await db.db.getStores();
     res.json(stores);
   } catch (error) {
     console.error('Error obteniendo tiendas:', error);
@@ -20,7 +20,7 @@ router.get('/', authMiddleware, (req, res) => {
 router.get('/:id', authMiddleware, (req, res) => {
   try {
     const { id } = req.params;
-    const store = db.db.getStoreById(id);
+    const store = await db.db.getStoreById(id);
     
     if (!store) {
       return res.status(404).json({ error: 'Tienda no encontrada' });
@@ -34,7 +34,7 @@ router.get('/:id', authMiddleware, (req, res) => {
 });
 
 // Crear nueva tienda (solo admin)
-router.post('/', authMiddleware, adminOnly, (req, res) => {
+router.post('/', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { name, address } = req.body;
 
@@ -43,7 +43,8 @@ router.post('/', authMiddleware, adminOnly, (req, res) => {
     }
 
     // Verificar que no exista una tienda con el mismo nombre
-    const existingStore = db.db.getStores().find(s => s.name.toLowerCase() === name.toLowerCase());
+    const stores = await db.db.getStores();
+    const existingStore = stores.find(s => s.name.toLowerCase() === name.toLowerCase());
     if (existingStore) {
       return res.status(400).json({ error: 'Ya existe una tienda con ese nombre' });
     }
@@ -55,7 +56,7 @@ router.post('/', authMiddleware, adminOnly, (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    db.db.addStore(newStore);
+    await db.db.addStore(newStore);
     res.status(201).json(newStore);
   } catch (error) {
     console.error('Error creando tienda:', error);
@@ -64,12 +65,12 @@ router.post('/', authMiddleware, adminOnly, (req, res) => {
 });
 
 // Actualizar tienda (solo admin)
-router.put('/:id', authMiddleware, adminOnly, (req, res) => {
+router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, address } = req.body;
 
-    const store = db.db.getStoreById(id);
+    const store = await db.db.getStoreById(id);
     if (!store) {
       return res.status(404).json({ error: 'Tienda no encontrada' });
     }
@@ -79,7 +80,7 @@ router.put('/:id', authMiddleware, adminOnly, (req, res) => {
     if (address !== undefined) updates.address = address;
     updates.updatedAt = new Date().toISOString();
 
-    const updatedStore = db.db.updateStore(id, updates);
+    const updatedStore = await db.db.updateStore(id, updates);
     res.json(updatedStore);
   } catch (error) {
     console.error('Error actualizando tienda:', error);

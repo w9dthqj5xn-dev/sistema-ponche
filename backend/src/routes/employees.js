@@ -9,7 +9,7 @@ const router = express.Router();
 // Obtener todos los empleados (solo admin)
 router.get('/', authMiddleware, adminOnly, async (req, res) => {
   try {
-    const employees = await db.db.db.getEmployees();
+    const employees = await db.db.getEmployees();
     // No enviar contraseñas
     const safeEmployees = employees.map(({ password, ...emp }) => emp);
     res.json(safeEmployees);
@@ -23,7 +23,7 @@ router.get('/', authMiddleware, adminOnly, async (req, res) => {
 router.get('/store/:storeId', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { storeId } = req.params;
-    const employees = await db.db.db.getEmployeesByStore(storeId);
+    const employees = await db.db.getEmployeesByStore(storeId);
     const safeEmployees = employees.map(({ password, ...emp }) => emp);
     res.json(safeEmployees);
   } catch (error) {
@@ -36,7 +36,7 @@ router.get('/store/:storeId', authMiddleware, adminOnly, async (req, res) => {
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const employee = await db.db.db.getEmployeeById(id);
+    const employee = await db.db.getEmployeeById(id);
     
     if (!employee) {
       return res.status(404).json({ error: 'Empleado no encontrado' });
@@ -65,13 +65,14 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
     }
 
     // Verificar si el código de empleado ya existe
-    const existingEmployee = db.db.getEmployees().find(e => e.employeeCode === employeeCode);
+    const employees = await db.db.getEmployees();
+    const existingEmployee = employees.find(e => e.employeeCode === employeeCode);
     if (existingEmployee) {
       return res.status(400).json({ error: 'El código de empleado ya existe' });
     }
 
     // Verificar que la tienda existe
-    const store = db.db.getStoreById(storeId);
+    const store = await db.db.getStoreById(storeId);
     if (!store) {
       return res.status(400).json({ error: 'Tienda no encontrada' });
     }
@@ -92,7 +93,7 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    db.db.addEmployee(newEmployee);
+    await db.db.addEmployee(newEmployee);
 
     const { password, ...safeEmployee } = newEmployee;
     res.status(201).json(safeEmployee);
@@ -115,7 +116,7 @@ router.put('/change-password', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 4 caracteres' });
     }
 
-    const employee = db.db.getEmployeeById(req.user.id);
+    const employee = await db.db.getEmployeeById(req.user.id);
     if (!employee) {
       return res.status(404).json({ error: 'Empleado no encontrado' });
     }
@@ -150,7 +151,7 @@ router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
     const { id } = req.params;
     const { name, position, phone, email, active } = req.body;
 
-    const employee = db.db.getEmployeeById(id);
+    const employee = await db.db.getEmployeeById(id);
     if (!employee) {
       return res.status(404).json({ error: 'Empleado no encontrado' });
     }
@@ -163,7 +164,7 @@ router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
     if (active !== undefined) updates.active = active;
     updates.updatedAt = new Date().toISOString();
 
-    const updatedEmployee = db.db.updateEmployee(id, updates);
+    const updatedEmployee = await db.db.updateEmployee(id, updates);
     const { password, ...safeEmployee } = updatedEmployee;
     
     res.json(safeEmployee);
@@ -178,7 +179,7 @@ router.delete('/:id', authMiddleware, adminOnly, (req, res) => {
   try {
     const { id } = req.params;
     
-    const employee = db.db.getEmployeeById(id);
+    const employee = await db.db.getEmployeeById(id);
     if (!employee) {
       return res.status(404).json({ error: 'Empleado no encontrado' });
     }

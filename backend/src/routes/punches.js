@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/', authMiddleware, adminOnly, (req, res) => {
   try {
     const { date, storeId, employeeId } = req.query;
-    let punches = db.db.getPunches();
+    let punches = await db.db.getPunches();
 
     if (date) {
       punches = punches.filter(p => p.date === date);
@@ -25,8 +25,8 @@ router.get('/', authMiddleware, adminOnly, (req, res) => {
 
     // Agregar información del empleado y tienda
     const enrichedPunches = punches.map(punch => {
-      const employee = db.db.getEmployeeById(punch.employeeId);
-      const store = db.db.getStoreById(punch.storeId);
+      const employee = await db.db.getEmployeeById(punch.employeeId);
+      const store = await db.db.getStoreById(punch.storeId);
       return {
         ...punch,
         employeeName: employee?.name || 'Desconocido',
@@ -45,7 +45,7 @@ router.get('/', authMiddleware, adminOnly, (req, res) => {
 router.get('/my-punches', authMiddleware, (req, res) => {
   try {
     const { date } = req.query;
-    let punches = db.db.getPunchesByEmployee(req.user.id);
+    let punches = await db.db.getPunchesByEmployee(req.user.id);
 
     if (date) {
       punches = punches.filter(p => p.date === date);
@@ -70,7 +70,7 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Tipo de ponche inválido' });
     }
 
-    const employee = db.db.getEmployeeById(req.user.id);
+    const employee = await db.db.getEmployeeById(req.user.id);
     if (!employee) {
       return res.status(404).json({ error: 'Empleado no encontrado' });
     }
@@ -95,7 +95,7 @@ router.post('/', authMiddleware, async (req, res) => {
     // Verificar si ya existe un ponche del mismo tipo hoy (solo para in, out, lunch-out, lunch-in)
     const restrictedTypes = ['in', 'out', 'lunch-out', 'lunch-in'];
     if (restrictedTypes.includes(type)) {
-      const todayPunches = db.db.getPunchesByEmployee(req.user.id).filter(p => p.date === date);
+      const todayPunches = await db.db.getPunchesByEmployee(req.user.id).filter(p => p.date === date);
       const existingPunch = todayPunches.find(p => p.type === type);
       
       if (existingPunch) {
@@ -126,7 +126,7 @@ router.post('/', authMiddleware, async (req, res) => {
     db.db.addPunch(punch);
 
     // Agregar nombre de la tienda para la respuesta
-    const store = db.db.getStoreById(employee.storeId);
+    const store = await db.db.getStoreById(employee.storeId);
     const response = {
       ...punch,
       storeName: store?.name || 'Desconocido'
@@ -143,10 +143,10 @@ router.post('/', authMiddleware, async (req, res) => {
 router.get('/stats/by-store', authMiddleware, adminOnly, (req, res) => {
   try {
     const { date } = req.query;
-    const stores = db.db.getStores();
+    const stores = await db.db.getStores();
     
     const stats = stores.map(store => {
-      let punches = db.db.getPunchesByStore(store.id);
+      let punches = await db.db.getPunchesByStore(store.id);
       
       if (date) {
         punches = punches.filter(p => p.date === date);
@@ -177,15 +177,15 @@ router.get('/stats/by-store', authMiddleware, adminOnly, (req, res) => {
 // Obtener estadísticas de salidas al baño por empleado (admin)
 router.get('/stats/bathroom', authMiddleware, adminOnly, (req, res) => {
   try {
-    const allPunches = db.db.getPunches();
+    const allPunches = await db.db.getPunches();
     const bathroomPunches = allPunches.filter(p => p.type === 'bathroom-out');
     
     // Agrupar por empleado y contar
     const employeeStats = {};
     bathroomPunches.forEach(punch => {
       if (!employeeStats[punch.employeeId]) {
-        const employee = db.db.getEmployeeById(punch.employeeId);
-        const store = db.db.getStoreById(punch.storeId);
+        const employee = await db.db.getEmployeeById(punch.employeeId);
+        const store = await db.db.getStoreById(punch.storeId);
         employeeStats[punch.employeeId] = {
           employeeId: punch.employeeId,
           employeeName: punch.employeeName || employee?.name || 'Desconocido',
