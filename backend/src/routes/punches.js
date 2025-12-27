@@ -6,7 +6,7 @@ import { authMiddleware, adminOnly } from '../middleware/auth.js';
 const router = express.Router();
 
 // Obtener todos los ponches (solo admin)
-router.get('/', authMiddleware, adminOnly, (req, res) => {
+router.get('/', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { date, storeId, employeeId } = req.query;
     let punches = await db.db.getPunches();
@@ -24,7 +24,7 @@ router.get('/', authMiddleware, adminOnly, (req, res) => {
     }
 
     // Agregar información del empleado y tienda
-    const enrichedPunches = punches.map(punch => {
+    const enrichedPunches = await Promise.all(punches.map(async punch => {
       const employee = await db.db.getEmployeeById(punch.employeeId);
       const store = await db.db.getStoreById(punch.storeId);
       return {
@@ -32,7 +32,7 @@ router.get('/', authMiddleware, adminOnly, (req, res) => {
         employeeName: employee?.name || 'Desconocido',
         storeName: store?.name || 'Desconocido'
       };
-    });
+    }));
 
     res.json(enrichedPunches);
   } catch (error) {
@@ -42,7 +42,7 @@ router.get('/', authMiddleware, adminOnly, (req, res) => {
 });
 
 // Obtener ponches del empleado actual
-router.get('/my-punches', authMiddleware, (req, res) => {
+router.get('/my-punches', authMiddleware, async (req, res) => {
   try {
     const { date } = req.query;
     let punches = await db.db.getPunchesByEmployee(req.user.id);
@@ -95,7 +95,7 @@ router.post('/', authMiddleware, async (req, res) => {
     // Verificar si ya existe un ponche del mismo tipo hoy (solo para in, out, lunch-out, lunch-in)
     const restrictedTypes = ['in', 'out', 'lunch-out', 'lunch-in'];
     if (restrictedTypes.includes(type)) {
-      const todayPunches = await db.db.getPunchesByEmployee(req.user.id).filter(p => p.date === date);
+      const todayPunches = (await db.db.getPunchesByEmployee(req.user.id)).filter(p => p.date === date);
       const existingPunch = todayPunches.find(p => p.type === type);
       
       if (existingPunch) {
@@ -123,7 +123,7 @@ router.post('/', authMiddleware, async (req, res) => {
       createdAt: timestamp
     };
 
-    db.db.addPunch(punch);
+    await db.db.addPunch(punch);
 
     // Agregar nombre de la tienda para la respuesta
     const store = await db.db.getStoreById(employee.storeId);
@@ -140,12 +140,12 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 // Obtener estadísticas de ponches por tienda (admin)
-router.get('/stats/by-store', authMiddleware, adminOnly, (req, res) => {
+router.get('/stats/by-store', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { date } = req.query;
     const stores = await db.db.getStores();
     
-    const stats = stores.map(store => {
+    const stats = await Promise.all(stores.map(async store => {
       let punches = await db.db.getPunchesByStore(store.id);
       
       if (date) {
@@ -165,7 +165,7 @@ router.get('/stats/by-store', authMiddleware, adminOnly, (req, res) => {
         punchesIn,
         punchesOut
       };
-    });
+    }));
 
     res.json(stats);
   } catch (error) {
@@ -175,14 +175,14 @@ router.get('/stats/by-store', authMiddleware, adminOnly, (req, res) => {
 });
 
 // Obtener estadísticas de salidas al baño por empleado (admin)
-router.get('/stats/bathroom', authMiddleware, adminOnly, (req, res) => {
+router.get('/stats/bathroom', authMiddleware, adminOnly, async (req, res) => {
   try {
     const allPunches = await db.db.getPunches();
     const bathroomPunches = allPunches.filter(p => p.type === 'bathroom-out');
     
     // Agrupar por empleado y contar
     const employeeStats = {};
-    bathroomPunches.forEach(punch => {
+    for (const punch of bathroomPunches) {
       if (!employeeStats[punch.employeeId]) {
         const employee = await db.db.getEmployeeById(punch.employeeId);
         const store = await db.db.getStoreById(punch.storeId);
@@ -194,7 +194,7 @@ router.get('/stats/bathroom', authMiddleware, adminOnly, (req, res) => {
         };
       }
       employeeStats[punch.employeeId].count++;
-    });
+    }
 
     // Convertir a array y ordenar por mayor cantidad
     const sortedStats = Object.values(employeeStats)

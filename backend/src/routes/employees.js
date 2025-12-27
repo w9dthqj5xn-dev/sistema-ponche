@@ -136,7 +136,7 @@ router.put('/change-password', authMiddleware, async (req, res) => {
       updatedAt: new Date().toISOString()
     };
 
-    db.db.updateEmployee(req.user.id, updates);
+    await db.db.updateEmployee(req.user.id, updates);
     
     res.json({ message: 'Contraseña actualizada correctamente' });
   } catch (error) {
@@ -175,7 +175,7 @@ router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
 });
 
 // Eliminar empleado (solo admin)
-router.delete('/:id', authMiddleware, adminOnly, (req, res) => {
+router.delete('/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -184,7 +184,7 @@ router.delete('/:id', authMiddleware, adminOnly, (req, res) => {
       return res.status(404).json({ error: 'Empleado no encontrado' });
     }
 
-    db.db.deleteEmployee(id);
+    await db.db.deleteEmployee(id);
     res.json({ message: 'Empleado eliminado correctamente' });
   } catch (error) {
     console.error('Error eliminando empleado:', error);

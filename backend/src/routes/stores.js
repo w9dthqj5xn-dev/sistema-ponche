@@ -6,7 +6,7 @@ import { authMiddleware, adminOnly } from '../middleware/auth.js';
 const router = express.Router();
 
 // Obtener todas las tiendas
-router.get('/', authMiddleware, (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const stores = await db.db.getStores();
     res.json(stores);
@@ -17,7 +17,7 @@ router.get('/', authMiddleware, (req, res) => {
 });
 
 // Obtener una tienda por ID
-router.get('/:id', authMiddleware, (req, res) => {
+router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const store = await db.db.getStoreById(id);
