@@ -81,8 +81,16 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const now = new Date();
     const timestamp = now.toISOString();
-    const date = now.toISOString().split('T')[0]; // YYYY-MM-DD
-    const time = now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    
+    // Obtener fecha y hora en la zona horaria de República Dominicana (America/Santo_Domingo)
+    const localTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Santo_Domingo' }));
+    const date = localTime.toISOString().split('T')[0]; // YYYY-MM-DD
+    const time = localTime.toLocaleTimeString('es-DO', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit',
+      hour12: false 
+    });
 
     // Verificar si ya existe un ponche del mismo tipo hoy (solo para in, out, lunch-out, lunch-in)
     const restrictedTypes = ['in', 'out', 'lunch-out', 'lunch-in'];
