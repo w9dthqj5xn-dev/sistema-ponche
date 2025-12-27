@@ -75,7 +75,7 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Empleado no encontrado' });
     }
 
-    if (!employee.active) {
+    if (employee.status !== 'active') {
       return res.status(403).json({ error: 'Empleado inactivo' });
     }
 

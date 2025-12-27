@@ -38,6 +38,7 @@ export const initDatabase = async () => {
         id VARCHAR(50) PRIMARY KEY,
         employee_code VARCHAR(50) UNIQUE NOT NULL,
         name VARCHAR(200) NOT NULL,
+        password VARCHAR(255) NOT NULL,
         email VARCHAR(200),
         phone VARCHAR(50),
         store_id VARCHAR(50) REFERENCES stores(id),
@@ -139,6 +140,7 @@ export const db = {
       id: row.id,
       employeeCode: row.employee_code,
       name: row.name,
+      password: row.password,
       email: row.email,
       phone: row.phone,
       storeId: row.store_id,
@@ -157,6 +159,7 @@ export const db = {
       id: row.id,
       employeeCode: row.employee_code,
       name: row.name,
+      password: row.password,
       email: row.email,
       phone: row.phone,
       storeId: row.store_id,
@@ -173,6 +176,7 @@ export const db = {
       id: row.id,
       employeeCode: row.employee_code,
       name: row.name,
+      password: row.password,
       email: row.email,
       phone: row.phone,
       storeId: row.store_id,
@@ -184,16 +188,17 @@ export const db = {
   },
   
   addEmployee: async (employee) => {
-    const { id, employeeCode, name, email, phone, storeId, position, status } = employee;
+    const { id, employeeCode, name, password, email, phone, storeId, position, status } = employee;
     const result = await pool.query(
-      'INSERT INTO employees (id, employee_code, name, email, phone, store_id, position, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-      [id, employeeCode, name, email, phone, storeId, position, status || 'active']
+      'INSERT INTO employees (id, employee_code, name, password, email, phone, store_id, position, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      [id, employeeCode, name, password, email, phone, storeId, position, status || 'active']
     );
     const row = result.rows[0];
     return {
       id: row.id,
       employeeCode: row.employee_code,
       name: row.name,
+      password: row.password,
       email: row.email,
       phone: row.phone,
       storeId: row.store_id,
@@ -216,6 +221,10 @@ export const db = {
     if (updates.name !== undefined) {
       fields.push(`name = $${paramCount++}`);
       values.push(updates.name);
+    }
+    if (updates.password !== undefined) {
+      fields.push(`password = $${paramCount++}`);
+      values.push(updates.password);
     }
     if (updates.email !== undefined) {
       fields.push(`email = $${paramCount++}`);

@@ -89,7 +89,7 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
       position: position || 'Empleado',
       phone: phone || '',
       email: email || '',
-      active: true,
+      status: 'active',
       createdAt: new Date().toISOString()
     };
 
