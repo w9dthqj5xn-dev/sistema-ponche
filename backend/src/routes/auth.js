@@ -16,11 +16,12 @@ router.post('/login', async (req, res) => {
     }
 
     // Buscar usuario (puede ser admin o empleado)
-    let user = db.getUserByUsername(username);
+    let user = await db.db.getUserByUsername(username);
     
     // Si no es usuario del sistema, buscar en empleados
     if (!user) {
-      const employee = db.getEmployees().find(e => e.employeeCode === username);
+      const employees = await db.db.getEmployees();
+      const employee = employees.find(e => e.employeeCode === username);
       if (employee) {
         user = {
           id: employee.id,

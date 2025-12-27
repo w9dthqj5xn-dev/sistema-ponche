@@ -8,7 +8,7 @@ const router = express.Router();
 // Obtener todas las tiendas
 router.get('/', authMiddleware, (req, res) => {
   try {
-    const stores = db.getStores();
+    const stores = db.db.getStores();
     res.json(stores);
   } catch (error) {
     console.error('Error obteniendo tiendas:', error);
@@ -20,7 +20,7 @@ router.get('/', authMiddleware, (req, res) => {
 router.get('/:id', authMiddleware, (req, res) => {
   try {
     const { id } = req.params;
-    const store = db.getStoreById(id);
+    const store = db.db.getStoreById(id);
     
     if (!store) {
       return res.status(404).json({ error: 'Tienda no encontrada' });
@@ -43,7 +43,7 @@ router.post('/', authMiddleware, adminOnly, (req, res) => {
     }
 
     // Verificar que no exista una tienda con el mismo nombre
-    const existingStore = db.getStores().find(s => s.name.toLowerCase() === name.toLowerCase());
+    const existingStore = db.db.getStores().find(s => s.name.toLowerCase() === name.toLowerCase());
     if (existingStore) {
       return res.status(400).json({ error: 'Ya existe una tienda con ese nombre' });
     }
@@ -55,7 +55,7 @@ router.post('/', authMiddleware, adminOnly, (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    db.addStore(newStore);
+    db.db.addStore(newStore);
     res.status(201).json(newStore);
   } catch (error) {
     console.error('Error creando tienda:', error);
@@ -69,7 +69,7 @@ router.put('/:id', authMiddleware, adminOnly, (req, res) => {
     const { id } = req.params;
     const { name, address } = req.body;
 
-    const store = db.getStoreById(id);
+    const store = db.db.getStoreById(id);
     if (!store) {
       return res.status(404).json({ error: 'Tienda no encontrada' });
     }
@@ -79,7 +79,7 @@ router.put('/:id', authMiddleware, adminOnly, (req, res) => {
     if (address !== undefined) updates.address = address;
     updates.updatedAt = new Date().toISOString();
 
-    const updatedStore = db.updateStore(id, updates);
+    const updatedStore = db.db.updateStore(id, updates);
     res.json(updatedStore);
   } catch (error) {
     console.error('Error actualizando tienda:', error);
